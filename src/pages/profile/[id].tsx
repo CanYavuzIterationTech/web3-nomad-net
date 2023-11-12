@@ -101,7 +101,7 @@ const Profile: NextPage<ProfileProps> = ({ id }) => {
       account.address,
       id as `0x${string}`,
     ]);
-    return az;
+    return az[0];
 
   })
 
