@@ -1,15 +1,10 @@
 import { client, getAllSps } from "@/client";
 import CreateProfileModal from "@/components/create-profile/create-profile-modal";
-import { Demo } from "@/components/demo";
 import RegularTweetOverhead from "@/components/tweet/regular-tweet-overhead";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ChangeGroupPolicy from "@/components/upload/change-group-policy";
-import CreateAndUpload from "@/components/upload/create-and-upload";
-import { Wallet } from "@/components/wallet";
 import { useIsMounted } from "@/hooks/useIsMounted";
 import { getGreenSocialContract } from "@/lib/get-contract";
 import { GfSPListObjectsByBucketNameResponse } from "@bnb-chain/greenfield-js-sdk";
-
 import { Inter } from "next/font/google";
 import Head from "next/head";
 import { useAccount, usePublicClient, useQuery } from "wagmi";
@@ -42,7 +37,51 @@ export default function Home() {
     return qwe;
   });
 
+  const { data: following } = useQuery(["following"], async () => {
+    if (!publicClient) return;
+    if (!account) return;
+    if (!account.address) return;
+
+    const greenSocial = getGreenSocialContract({
+      publicClient,
+    });
+
+    const followingCount = await greenSocial.read.getFollowingCount([
+      account.address as `0x${string}`,
+    ]);
+
+    const following = await greenSocial.read.getFollowing([
+      account.address as `0x${string}`,
+      0n,
+      followingCount,
+    ]);
+
+
+    return following;
+  }, {
+    enabled: !!account.isConnected
+  });
+
   if (!isMounted) return null;
+
+  if(!postList) return null;
+  postList.Objects.sort(
+    (a, b) => b.ObjectInfo.CreateAt - a.ObjectInfo.CreateAt
+  )
+  const better =   postList.Objects.filter((post) => {
+                
+    // if post.ObjectInfo.Creator is not in the following list, return false
+    // if post.ObjectInfo.Creator is in the following list, return true
+    // if following is undefined, return false
+    console.log(following);
+    if (following === undefined) return false;
+    if (following.includes(post.ObjectInfo.Creator as `0x${string}`)) return true;
+    else return false;
+
+  })
+
+  console.log(better);
+  
 
   return (
     <>
@@ -87,7 +126,26 @@ export default function Home() {
                 );
               })}
           </TabsContent>
-          <TabsContent value="following"></TabsContent>
+          <TabsContent value="following">
+
+          {
+              better.map((post) => {
+
+                const greenSocial = getGreenSocialContract({
+                  publicClient,
+                });
+
+                return (
+                  <div id={post.CreateTxHash}>
+                    <RegularTweetOverhead
+                      object={post.ObjectInfo}
+                      address={post.ObjectInfo.Creator as `0x${string}`}
+                      createHash={post.CreateTxHash}
+                    />
+                  </div>
+                );
+              })}
+          </TabsContent>
         </Tabs>
       </main>
     </>

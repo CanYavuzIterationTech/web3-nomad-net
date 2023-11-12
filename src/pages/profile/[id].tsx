@@ -52,7 +52,6 @@ const Profile: NextPage<ProfileProps> = ({ id }) => {
         publicClient,
       });
 
-
       // Returns the profile status of the user
       // First is the username, second is the bio and third is the image url
       const profileStatusRaw = await greenSocial.read.users([
@@ -90,20 +89,22 @@ const Profile: NextPage<ProfileProps> = ({ id }) => {
     }
   );
 
-  const {data: isFollowing} = useQuery(["folloing-query", id],async () => {
-    if (!publicClient) return;
-    if (!account) return;
-    if(!account.address) return;
-    const greenSocial = getGreenSocialContract({
-      publicClient
-    });
-    const az = await greenSocial.read.isFollowingIndex([
-      account.address,
-      id as `0x${string}`,
-    ]);
-    return az[0];
-
-  })
+  const { data: isFollowing, refetch: refetch2 } = useQuery(
+    ["folloing-query", id],
+    async () => {
+      if (!publicClient) return;
+      if (!account) return;
+      if (!account.address) return;
+      const greenSocial = getGreenSocialContract({
+        publicClient,
+      });
+      const az = await greenSocial.read.isFollowingIndex([
+        account.address,
+        id as `0x${string}`,
+      ]);
+      return az[0];
+    }
+  );
 
   const followUser = async () => {
     try {
@@ -121,7 +122,8 @@ const Profile: NextPage<ProfileProps> = ({ id }) => {
       });
       const hash = await walletClient.writeContract(request);
       await publicClient.waitForTransactionReceipt({ hash });
-      refetch()
+      refetch();
+      refetch2();
     } catch (err) {
       console.log(err);
     }
@@ -144,6 +146,7 @@ const Profile: NextPage<ProfileProps> = ({ id }) => {
       const hash = await walletClient.writeContract(request);
       await publicClient.waitForTransactionReceipt({ hash });
       refetch();
+      refetch2();
     } catch (err) {
       console.log(err);
     }
@@ -168,7 +171,9 @@ const Profile: NextPage<ProfileProps> = ({ id }) => {
                 Follow
               </Button>
             ) : (
-              <Button className="w-full" onClick={unfollowUser}>Unfollow</Button>
+              <Button className="w-full" onClick={unfollowUser}>
+                Unfollow
+              </Button>
             )
           ) : (
             <Button disabled className="w-full">
